@@ -1,157 +1,163 @@
 ﻿async function sendRequest(type, request) {
-    let endPoint;
-    switch (type) {
-        case 'complete': endPoint = '/completion/complete'; break;
-        case 'signature': endPoint = '/completion/signature'; break;
-        case 'hover': endPoint = '/completion/hover'; break;
-        case 'codeCheck': endPoint = '/completion/codeCheck'; break;
-    }
-    return await axios.post(endPoint, JSON.stringify(request))
+  let endPoint;
+  switch (type) {
+    case "complete":
+      endPoint = "/completion/complete";
+      break;
+    case "signature":
+      endPoint = "/completion/signature";
+      break;
+    case "hover":
+      endPoint = "/completion/hover";
+      break;
+    case "codeCheck":
+      endPoint = "/completion/codeCheck";
+      break;
+  }
+  return await axios.post(endPoint, JSON.stringify(request));
 }
 
 function registerCsharpProvider() {
+  var assemblies = [];
 
-    var assemblies = ['.\\bin\\Debug\\net6.0\\System.Text.Json.dll'];
+  monaco.languages.registerCompletionItemProvider("csharp", {
+    triggerCharacters: [".", " "],
+    provideCompletionItems: async (model, position) => {
+      let suggestions = [];
 
-    monaco.languages.registerCompletionItemProvider('csharp', {
-        triggerCharacters: [".", " "],
-        provideCompletionItems: async (model, position) => {
-            let suggestions = [];
+      let request = {
+        Code: model.getValue(),
+        Position: model.getOffsetAt(position),
+        Assemblies: assemblies,
+      };
 
-            let request = {
-                Code: model.getValue(),
-                Position: model.getOffsetAt(position),
-                Assemblies: assemblies
-            }
+      let resultQ = await sendRequest("complete", request);
 
-            let resultQ = await sendRequest("complete", request);
-
-            for (let elem of resultQ.data) {
-                suggestions.push({
-                    label: {
-                        label: elem.Suggestion,
-                        description: elem.Description
-                    },
-                    kind: monaco.languages.CompletionItemKind.Function,
-                    insertText: elem.Suggestion
-                });
-            }
-
-            return { suggestions: suggestions };
-        }
-    });
-
-    monaco.languages.registerSignatureHelpProvider('csharp', {
-        signatureHelpTriggerCharacters: ["("],
-        signatureHelpRetriggerCharacters: [","],
-
-        provideSignatureHelp: async (model, position, token, context) => {
-
-            let request = {
-                Code: model.getValue(),
-                Position: model.getOffsetAt(position),
-                Assemblies: assemblies
-            }
-
-            let resultQ = await sendRequest("signature", request);
-            if (!resultQ.data) return;
-
-            let signatures = [];
-            for (let signature of resultQ.data.Signatures) {
-                let params = [];
-                for (let param of signature.Parameters) {
-                    params.push({
-                        label: param.Label,
-                        documentation: param.Documentation ?? ""
-                    });
-                }
-
-                signatures.push({
-                    label: signature.Label,
-                    documentation: signature.Documentation ?? "",
-                    parameters: params,
-                });
-            }
-
-            let signatureHelp = {};
-            signatureHelp.signatures = signatures;
-            signatureHelp.activeParameter = resultQ.data.ActiveParameter;
-            signatureHelp.activeSignature = resultQ.data.ActiveSignature;
-
-            return {
-                value: signatureHelp,
-                dispose: () => { }
-            };
-        }
-    });
-
-
-    monaco.languages.registerHoverProvider('csharp', {
-        provideHover: async function (model, position) {
-
-            let request = {
-                Code: model.getValue(),
-                Position: model.getOffsetAt(position),
-                Assemblies: assemblies
-            }
-
-            let resultQ = await sendRequest("hover", request);
-
-            if (resultQ.data) {
-                posStart = model.getPositionAt(resultQ.data.OffsetFrom);
-                posEnd = model.getPositionAt(resultQ.data.OffsetTo);
-
-                return {
-                    range: new monaco.Range(posStart.lineNumber, posStart.column, posEnd.lineNumber, posEnd.column),
-                    contents: [
-                        { value: resultQ.data.Information }
-                    ]
-                };
-            }
-
-            return null;
-        }
-    });
-
-    monaco.editor.onDidCreateModel(function (model) {
-        async function validate() {
-
-            let request = {
-                Code: model.getValue(),
-                Assemblies: assemblies
-            }
-
-            let resultQ = await sendRequest("codeCheck", request)
-
-            let markers = [];
-
-            for (let elem of resultQ.data) {
-                posStart = model.getPositionAt(elem.OffsetFrom);
-                posEnd = model.getPositionAt(elem.OffsetTo);
-                markers.push({
-                    severity: elem.Severity,
-                    startLineNumber: posStart.lineNumber,
-                    startColumn: posStart.column,
-                    endLineNumber: posEnd.lineNumber,
-                    endColumn: posEnd.column,
-                    message: elem.Message,
-                    code: elem.Id
-                });
-            }
-
-            monaco.editor.setModelMarkers(model, 'csharp', markers);
-        }
-
-        var handle = null;
-        model.onDidChangeContent(() => {
-            monaco.editor.setModelMarkers(model, 'csharp', []);
-            clearTimeout(handle);
-            handle = setTimeout(() => validate(), 500);
+      for (let elem of resultQ.data) {
+        suggestions.push({
+          label: {
+            label: elem.Suggestion,
+            description: elem.Description,
+          },
+          kind: monaco.languages.CompletionItemKind.Function,
+          insertText: elem.Suggestion,
         });
-        validate();
-    });
+      }
 
-    /*monaco.languages.registerInlayHintsProvider('csharp', {
+      return { suggestions: suggestions };
+    },
+  });
+
+  monaco.languages.registerSignatureHelpProvider("csharp", {
+    signatureHelpTriggerCharacters: ["("],
+    signatureHelpRetriggerCharacters: [","],
+
+    provideSignatureHelp: async (model, position, token, context) => {
+      let request = {
+        Code: model.getValue(),
+        Position: model.getOffsetAt(position),
+        Assemblies: assemblies,
+      };
+
+      let resultQ = await sendRequest("signature", request);
+      if (!resultQ.data) return;
+
+      let signatures = [];
+      for (let signature of resultQ.data.Signatures) {
+        let params = [];
+        for (let param of signature.Parameters) {
+          params.push({
+            label: param.Label,
+            documentation: param.Documentation ?? "",
+          });
+        }
+
+        signatures.push({
+          label: signature.Label,
+          documentation: signature.Documentation ?? "",
+          parameters: params,
+        });
+      }
+
+      let signatureHelp = {};
+      signatureHelp.signatures = signatures;
+      signatureHelp.activeParameter = resultQ.data.ActiveParameter;
+      signatureHelp.activeSignature = resultQ.data.ActiveSignature;
+
+      return {
+        value: signatureHelp,
+        dispose: () => {},
+      };
+    },
+  });
+
+  monaco.languages.registerHoverProvider("csharp", {
+    provideHover: async function (model, position) {
+      let request = {
+        Code: model.getValue(),
+        Position: model.getOffsetAt(position),
+        Assemblies: assemblies,
+      };
+
+      let resultQ = await sendRequest("hover", request);
+
+      if (resultQ.data) {
+        posStart = model.getPositionAt(resultQ.data.OffsetFrom);
+        posEnd = model.getPositionAt(resultQ.data.OffsetTo);
+
+        return {
+          range: new monaco.Range(
+            posStart.lineNumber,
+            posStart.column,
+            posEnd.lineNumber,
+            posEnd.column
+          ),
+          contents: [{ value: resultQ.data.Information }],
+        };
+      }
+
+      return null;
+    },
+  });
+
+  monaco.editor.onDidCreateModel(function (model) {
+    async function validate() {
+      let request = {
+        Code: model.getValue(),
+        Assemblies: assemblies,
+      };
+
+      let resultQ = await sendRequest("codeCheck", request);
+
+      let markers = [];
+
+      for (let elem of resultQ.data) {
+        posStart = model.getPositionAt(elem.OffsetFrom);
+        posEnd = model.getPositionAt(elem.OffsetTo);
+        markers.push({
+          severity: elem.Severity,
+          startLineNumber: posStart.lineNumber,
+          startColumn: posStart.column,
+          endLineNumber: posEnd.lineNumber,
+          endColumn: posEnd.column,
+          message: elem.Message,
+          code: elem.Id,
+        });
+      }
+
+      monaco.editor.setModelMarkers(model, "csharp", markers);
+    }
+
+    var handle = null;
+    model.onDidChangeContent(() => {
+      monaco.editor.setModelMarkers(model, "csharp", []);
+      clearTimeout(handle);
+      handle = setTimeout(() => validate(), 500);
+    });
+    validate();
+  });
+
+  /*monaco.languages.registerInlayHintsProvider('csharp', {
         displayName: 'test',
         provideInlayHints(model, range, token) {
             return {
@@ -169,7 +175,7 @@ function registerCsharpProvider() {
 
     });*/
 
-    /*monaco.languages.registerCodeActionProvider("csharp", {
+  /*monaco.languages.registerCodeActionProvider("csharp", {
         provideCodeActions: async (model, range, context, token) => {
             const actions = context.markers.map(error => {
                 console.log(context, error);
@@ -199,5 +205,4 @@ function registerCsharpProvider() {
             }
         }
     });*/
-
 }
