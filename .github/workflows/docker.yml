@@ -68,6 +68,7 @@ jobs:
       - name: Deploy
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.WORKFLOW_DISPATCH }}
           script: |
             await github.rest.actions.createWorkflowDispatch({
               owner: 'poc-aaa',
