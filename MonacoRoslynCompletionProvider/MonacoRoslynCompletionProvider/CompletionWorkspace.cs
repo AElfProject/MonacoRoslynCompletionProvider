@@ -12,6 +12,10 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Xml;
 
+// aelf playground assemblies
+using AElf.Sdk.CSharp;
+using Google.Protobuf.WellKnownTypes;
+
 namespace MonacoRoslynCompletionProvider
 {
     public class CompletionWorkspace
@@ -30,7 +34,9 @@ namespace MonacoRoslynCompletionProvider
                 MetadataReference.CreateFromFile(typeof(DataSet).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(XmlDocument).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(INotifyPropertyChanged).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(System.Linq.Expressions.Expression).Assembly.Location)
+                MetadataReference.CreateFromFile(typeof(System.Linq.Expressions.Expression).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(AElf.Sdk.CSharp).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(Google.Protobuf.WellKnownTypes).Assembly.Location),
             };
 
         private Project _project;
