@@ -33,7 +33,7 @@ namespace MonacoRoslynCompletionProvider
                 MetadataReference.CreateFromFile(typeof(System.Linq.Expressions.Expression).Assembly.Location),
                 // aelf playground assemblies
                 MetadataReference.CreateFromFile(Assembly.Load("AElf.Sdk.CSharp").Location),
-                MetadataReference.CreateFromFile(Assembly.Load("Google.Protobuf.WellKnownTypes").Location),
+                MetadataReference.CreateFromFile(Assembly.Load("Google.Protobuf").Location),
             };
 
         private Project _project;
